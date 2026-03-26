@@ -1,32 +1,30 @@
-# Hábitos Atómicos - Backend (Semana 1)
+# Proyecto Hábitos Atómicos
 
-Este es el backend del proyecto de control de hábitos, construido con Node.js, Express y MongoDB.
+Aplicación web basada en el libro "Hábitos Atómicos", desarrollada con el stack MERN + Next.js.
 
-## Requisitos previos
-- Node.js instalado.
-- Una cuenta en MongoDB Atlas.
+## Estructura del Proyecto
+El proyecto está dividido en dos partes principales:
+- `/backend`: API REST hecha con Node.js, Express y MongoDB.
+- `/frontend`: Interfaz de usuario construida con Next.js y Redux.
 
-## Instalación y Ejecución
+## Instrucciones para ejecutar el proyecto localmente
 
-1. Clona este repositorio:
-   \`\`\`bash
-   git clone [URL_DE_TU_REPOSITORIO]
-   \`\`\`
+Para correr esta aplicación, necesitas tener **dos terminales abiertas**, una para el backend y otra para el frontend.
 
-2. Instala las dependencias:
-   \`\`\`bash
-   npm install
-   \`\`\`
+### 1. Levantar el Backend
+Abre una terminal y ejecuta:
+\`\`\`bash
+cd backend
+npm install   # Solo la primera vez
+npm run dev
+\`\`\`
+El backend correrá en `http://localhost:5000`.
 
-3. Configura las variables de entorno:
-   Crea un archivo \`.env\` en la raíz del proyecto y agrega tu cadena de conexión:
-   \`\`\`env
-   PORT=5000
-   MONGODB_URI=tu_cadena_de_conexion_de_mongo_atlas
-   \`\`\`
-
-4. Ejecuta el proyecto en modo desarrollo:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-   El servidor iniciará en \`http://localhost:5000\`.
+### 2. Levantar el Frontend
+Abre **otra** terminal y ejecuta:
+\`\`\`bash
+cd frontend
+npm install   # Solo la primera vez
+npm run dev
+\`\`\`
+El frontend correrá en `http://localhost:3000`.
