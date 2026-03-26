@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchHabits, markHabitDone, addHabit, clearHabits } from "../store/features/habitSlice";
 
+// URL dinámica
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function Home() {
   const dispatch = useDispatch();
   const { list } = useSelector((state) => state.habits);
@@ -13,11 +16,9 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
-  // Estado para el formulario de nuevo hábito
   const [newHabitName, setNewHabitName] = useState("");
   const [newHabitDesc, setNewHabitDesc] = useState("");
 
-  // Verificar si hay token al cargar la página
   useEffect(() => {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
@@ -29,7 +30,8 @@ export default function Home() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    const url = `http://localhost:5000/api/auth/${authMode}`;
+    // Usamos la URL dinámica aquí
+    const url = `${API_URL}/api/auth/${authMode}`;
     const body = authMode === "register" ? { name, email, password } : { email, password };
 
     try {
@@ -45,7 +47,6 @@ export default function Home() {
           alert("Registrado! Ahora inicia sesión.");
           setAuthMode("login");
         } else {
-          // GUARDAR TOKEN EN LOCALSTORAGE (Requisito Semana 5)
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
           setUser(data.user);
@@ -105,7 +106,6 @@ export default function Home() {
           <button onClick={handleLogout} className="bg-red-100 text-red-600 px-4 py-2 rounded font-bold">Salir</button>
         </div>
 
-        {/* Formulario para agregar nuevo hábito */}
         <form onSubmit={handleCreateHabit} className="bg-white p-6 rounded-xl shadow-md mb-8 border-l-4 border-blue-500 flex flex-col md:flex-row gap-4">
           <input type="text" placeholder="Nombre del hábito (Ej. Leer)" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} className="flex-1 p-2 border rounded" required />
           <input type="text" placeholder="Descripción breve" value={newHabitDesc} onChange={(e) => setNewHabitDesc(e.target.value)} className="flex-1 p-2 border rounded" />
