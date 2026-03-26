@@ -1,26 +1,32 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchHabits, markHabitDone } from "../store/features/habitSlice";
+import { fetchHabits, markHabitDone, addHabit, clearHabits } from "../store/features/habitSlice";
 
 export default function Home() {
   const dispatch = useDispatch();
-  const { list, status, error } = useSelector((state) => state.habits);
+  const { list } = useSelector((state) => state.habits);
   
-  // Estado local para simular si el usuario está logueado o no
   const [user, setUser] = useState(null);
-  const [authMode, setAuthMode] = useState("login"); // 'login' o 'register'
+  const [authMode, setAuthMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
+  // Estado para el formulario de nuevo hábito
+  const [newHabitName, setNewHabitName] = useState("");
+  const [newHabitDesc, setNewHabitDesc] = useState("");
+
+  // Verificar si hay token al cargar la página
   useEffect(() => {
-    if (user && status === "idle") {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    if (token && savedUser) {
+      setUser(JSON.parse(savedUser));
       dispatch(fetchHabits());
     }
-  }, [user, status, dispatch]);
+  }, [dispatch]);
 
-  // Función para manejar Login y Registro
   const handleAuth = async (e) => {
     e.preventDefault();
     const url = `http://localhost:5000/api/auth/${authMode}`;
@@ -39,8 +45,11 @@ export default function Home() {
           alert("Registrado! Ahora inicia sesión.");
           setAuthMode("login");
         } else {
-          setUser(data.user); // Guardamos sesión
-          dispatch(fetchHabits()); // Forzamos carga de hábitos
+          // GUARDAR TOKEN EN LOCALSTORAGE (Requisito Semana 5)
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          setUser(data.user);
+          dispatch(fetchHabits());
         }
       } else {
         alert(data.message);
@@ -50,29 +59,36 @@ export default function Home() {
     }
   };
 
-  // Función que calcula el color de la barra dinámica
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    dispatch(clearHabits());
+  };
+
+  const handleCreateHabit = (e) => {
+    e.preventDefault();
+    if (!newHabitName.trim()) return;
+    dispatch(addHabit({ name: newHabitName, description: newHabitDesc }));
+    setNewHabitName("");
+    setNewHabitDesc("");
+  };
+
   const getProgressBarColor = (percentage) => {
     if (percentage < 33) return "bg-red-500";
     if (percentage < 66) return "bg-yellow-400";
     return "bg-green-500";
   };
 
-  // --- PANTALLA DE LOGIN / REGISTRO ---
   if (!user) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-100">
         <form onSubmit={handleAuth} className="bg-white p-8 rounded-xl shadow-lg w-96">
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-900">
-            {authMode === "login" ? "Iniciar Sesión" : "Crear Cuenta"}
-          </h2>
-          {authMode === "register" && (
-            <input type="text" placeholder="Nombre" required value={name} onChange={(e) => setName(e.target.value)} className="w-full mb-4 p-3 border rounded" />
-          )}
+          <h2 className="text-2xl font-bold mb-6 text-center text-blue-900">{authMode === "login" ? "Iniciar Sesión" : "Crear Cuenta"}</h2>
+          {authMode === "register" && <input type="text" placeholder="Nombre" required value={name} onChange={(e) => setName(e.target.value)} className="w-full mb-4 p-3 border rounded" />}
           <input type="email" placeholder="Correo electrónico" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full mb-4 p-3 border rounded" />
           <input type="password" placeholder="Contraseña" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mb-6 p-3 border rounded" />
-          <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">
-            {authMode === "login" ? "Entrar" : "Registrarse"}
-          </button>
+          <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">{authMode === "login" ? "Entrar" : "Registrarse"}</button>
           <p className="mt-4 text-center text-sm text-gray-500 cursor-pointer" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
             {authMode === "login" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Entra"}
           </p>
@@ -81,49 +97,43 @@ export default function Home() {
     );
   }
 
-  // --- PANTALLA DE HÁBITOS (Si está logueado) ---
   return (
     <main className="min-h-screen p-8 bg-gray-100 text-gray-800">
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-10">
-          <h1 className="text-4xl font-extrabold text-blue-900">Mis Hábitos Atómicos</h1>
-          <button onClick={() => setUser(null)} className="text-sm bg-red-100 text-red-600 px-4 py-2 rounded font-bold">Salir</button>
+          <h1 className="text-4xl font-extrabold text-blue-900">Mis Hábitos</h1>
+          <button onClick={handleLogout} className="bg-red-100 text-red-600 px-4 py-2 rounded font-bold">Salir</button>
         </div>
+
+        {/* Formulario para agregar nuevo hábito */}
+        <form onSubmit={handleCreateHabit} className="bg-white p-6 rounded-xl shadow-md mb-8 border-l-4 border-blue-500 flex flex-col md:flex-row gap-4">
+          <input type="text" placeholder="Nombre del hábito (Ej. Leer)" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} className="flex-1 p-2 border rounded" required />
+          <input type="text" placeholder="Descripción breve" value={newHabitDesc} onChange={(e) => setNewHabitDesc(e.target.value)} className="flex-1 p-2 border rounded" />
+          <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">Agregar</button>
+        </form>
 
         <div className="space-y-6">
           {list.map((habit) => {
-            // Lógica para la barra dinámica
             const progressPercent = Math.min((habit.currentStreak / habit.targetDays) * 100, 100);
-            
             return (
-              <div key={habit._id} className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-800">{habit.name}</h2>
-                    <div className="mt-5">
-                      <div className="flex justify-between text-xs text-gray-500 mb-2 font-medium">
-                        <span>Progreso Dinámico</span>
+              <div key={habit._id} className="bg-white p-6 rounded-xl shadow border">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="flex-1 w-full">
+                    <h2 className="text-2xl font-bold">{habit.name}</h2>
+                    {habit.description && <p className="text-sm text-gray-500">{habit.description}</p>}
+                    <div className="mt-4">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Progreso</span>
                         <span>{habit.currentStreak} / {habit.targetDays} días</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        {/* Barra dinámica que cambia de color y ancho */}
-                        <div 
-                          className={`h-3 rounded-full transition-all duration-1000 ${getProgressBarColor(progressPercent)}`} 
-                          style={{ width: `${progressPercent}%` }}
-                        ></div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className={`h-2 rounded-full transition-all ${getProgressBarColor(progressPercent)}`} style={{ width: `${progressPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Botón Done Funcional */}
-                  <div className="flex-shrink-0">
-                    <button 
-                      className="px-8 py-3 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold rounded-lg transition-colors focus:ring-4 focus:ring-green-300"
-                      onClick={() => dispatch(markHabitDone(habit._id)).catch(e => alert(e.message))}
-                    >
-                      Done ✓
-                    </button>
-                  </div>
+                  <button onClick={() => dispatch(markHabitDone(habit._id)).catch(e => alert(e.message))} className="px-6 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 w-full md:w-auto">
+                    Done ✓
+                  </button>
                 </div>
               </div>
             );

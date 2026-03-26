@@ -1,71 +1,63 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-// 1. Petición GET: Obtener todos los hábitos
+// Función auxiliar para obtener el token de localStorage
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}` // Aquí adjuntamos el gafete (JWT)
+  };
+};
+
 export const fetchHabits = createAsyncThunk('habits/fetchHabits', async () => {
-  const response = await fetch('http://localhost:5000/api/habits');
-  if (!response.ok) {
-    throw new Error('Error al cargar los hábitos');
-  }
+  const response = await fetch('http://localhost:5000/api/habits', {
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) throw new Error('Error al cargar los hábitos');
   return await response.json();
 });
 
-// 2. Petición PATCH: Marcar hábito como realizado / Lógica de racha (NUEVO SEMANA 4)
+export const addHabit = createAsyncThunk('habits/addHabit', async (habitData) => {
+  const response = await fetch('http://localhost:5000/api/habits', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(habitData)
+  });
+  if (!response.ok) throw new Error('Error al crear el hábito');
+  return await response.json();
+});
+
 export const markHabitDone = createAsyncThunk('habits/markHabitDone', async (habitId) => {
   const response = await fetch(`http://localhost:5000/api/habits/${habitId}/check`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
   });
-  
   const data = await response.json();
-  
-  // Si el backend nos lanza un error (ej. "Ya completaste este hábito hoy")
-  if (!response.ok) {
-    throw new Error(data.message || 'Error al actualizar el hábito');
-  }
-  
-  // Si todo sale bien, retornamos el hábito con su racha actualizada
-  return data; 
+  if (!response.ok) throw new Error(data.message || 'Error al actualizar');
+  return data;
 });
 
 const habitSlice = createSlice({
   name: 'habits',
-  initialState: {
-    list: [],
-    status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
-    error: null
+  initialState: { list: [], status: 'idle', error: null },
+  reducers: {
+    clearHabits: (state) => { state.list = []; state.status = 'idle'; } // Para borrar al cerrar sesión
   },
-  reducers: {},
   extraReducers: (builder) => {
     builder
-      // --- Estados para fetchHabits (Cargar la lista inicial) ---
-      .addCase(fetchHabits.pending, (state) => {
-        state.status = 'loading';
-      })
       .addCase(fetchHabits.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.list = action.payload; // Guardamos todos los hábitos en el estado
+        state.list = action.payload;
       })
-      .addCase(fetchHabits.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.error.message;
+      .addCase(addHabit.fulfilled, (state, action) => {
+        state.list.push(action.payload); // Agregamos el nuevo hábito a la lista
       })
-      
-      // --- Estados para markHabitDone (Al presionar el botón Done) ---
       .addCase(markHabitDone.fulfilled, (state, action) => {
-        // Buscamos el hábito específico en nuestra lista de Redux...
-        const index = state.list.findIndex(habit => habit._id === action.payload._id);
-        if (index !== -1) {
-          // ...y lo reemplazamos con la versión actualizada que nos mandó el backend
-          state.list[index] = action.payload;
-        }
-      })
-      .addCase(markHabitDone.rejected, (state, action) => {
-        // Si hay un error (ej. botón presionado 2 veces el mismo día), lo podemos guardar
-        state.error = action.error.message;
+        const index = state.list.findIndex(h => h._id === action.payload._id);
+        if (index !== -1) state.list[index] = action.payload;
       });
   }
 });
 
+export const { clearHabits } = habitSlice.actions;
 export default habitSlice.reducer;
